@@ -1,0 +1,1 @@
+<?php $data = json_encode(["email"=>"residente@correo.com", "password"=>"12345"]); $opts = ["http" => ["method" => "POST", "header" => "Content-Type: application/json\r\n", "content" => $data]]; $context = stream_context_create($opts); echo file_get_contents("http://localhost/control-accesos/api/auth/login.php", false, $context);

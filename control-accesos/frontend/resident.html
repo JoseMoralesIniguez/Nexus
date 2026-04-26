@@ -24,27 +24,69 @@
     <div class="container pb-5">
         <div class="row g-4">
             <!-- Columna Izquierda: Perfil y QR -->
-            <div class="col-lg-4">
-                <div class="glass-card p-4 text-center h-100">
-                    <h4 class="fw-bold mb-4">Mi Pase de Acceso</h4>
+            <div class="col-lg-4 transition-all" id="colLeft" style="transition: all 0.4s ease;">
+                <div class="glass-card p-4 text-center h-100" id="residentPassSummary">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="fw-bold m-0">Mi Pase</h4>
+                        <button class="btn btn-sm btn-outline-primary rounded-circle" id="btnExpandPass" title="Ver pase completo"><i class="fas fa-expand-arrows-alt"></i></button>
+                    </div>
                     <div id="qrCode" class="mb-4 d-flex justify-content-center">
                         <div class="spinner-border text-primary" role="status"></div>
                     </div>
-                    <p class="text-muted mb-1"><i class="fas fa-map-marker-alt me-2"></i><span id="userAddress">Cargando dirección...</span></p>
+                    <p class="text-muted mb-1"><i class="fas fa-map-marker-alt me-2 text-danger"></i><span id="userAddress" class="text-white fw-semibold">Cargando dirección...</span></p>
                     <div class="mt-4 pt-3 border-top border-secondary">
                         <p class="mb-2 text-white-50 small text-uppercase tracking-wide">Estado Financiero</p>
                         <div id="paymentStatus"></div>
                     </div>
                 </div>
+
+                <!-- Vista Expandida (Ticket Style) oculta por defecto -->
+                <div class="d-none" id="residentPassExpanded">
+                    <button class="btn btn-outline-light mb-4 rounded-pill px-4 shadow-sm" id="btnCollapsePass"><i class="fas fa-arrow-left me-2"></i>Regresar al panel</button>
+                    
+                    <div class="ticket" id="residentTicketCard">
+                        <!-- Mitad superior -->
+                        <div class="ticket-header text-white" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            <h5 class="text-uppercase fw-bold mb-1 opacity-75">Residente</h5>
+                            <h2 class="fw-bold mb-0" id="ticketResidentName">...</h2>
+                        </div>
+                        
+                        <div class="ticket-dashed-line"></div>
+
+                        <!-- Mitad inferior -->
+                        <div class="ticket-body">
+                            <div class="mb-4 text-start">
+                                <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Dirección</small>
+                                <span class="fw-bold fs-6" id="ticketAddress">...</span>
+                            </div>
+                            
+                            <div class="bg-light p-3 rounded mb-4">
+                                <small class="text-muted d-block text-uppercase fw-bold mb-2" style="font-size: 0.7rem;">Estado Financiero</small>
+                                <div id="ticketPaymentStatus"></div>
+                            </div>
+
+                            <div class="p-2 border rounded d-inline-block shadow-sm bg-white">
+                                <div id="ticketQrCode"></div>
+                            </div>
+                            
+                            <p class="mt-4 text-muted small fw-bold tracking-widest text-uppercase">Pase Permanente</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Columna Derecha: Visitas -->
-            <div class="col-lg-8">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="col-lg-8" id="colRight">
+                <div class="d-flex justify-content-between align-items-center mb-2">
                     <h3 class="fw-bold m-0">Mis Visitas</h3>
                     <button class="btn btn-primary rounded-pill px-4 shadow" data-bs-toggle="modal" data-bs-target="#createVisitModal">
                         <i class="fas fa-plus me-2"></i>Nuevo Pase
                     </button>
+                </div>
+                
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" role="switch" id="filterVisitsSwitch" checked style="cursor: pointer;">
+                    <label class="form-check-label text-muted ms-2" for="filterVisitsSwitch" style="cursor: pointer;">Mostrar solo pases activos</label>
                 </div>
 
                 <div id="visitsList">
@@ -65,17 +107,24 @@
           <form id="createVisitForm">
               <div class="modal-body py-4">
                 <div class="mb-3">
-                    <label class="form-label text-muted">Nombre del Visitante / Proveedor</label>
-                    <input type="text" class="form-control" id="visitorName" required placeholder="Ej. Uber Eats / Familia Pérez">
+                  <label class="form-label text-muted small fw-bold">Nombre del Visitante</label>
+                  <input type="text" class="form-control bg-dark text-white border-secondary" id="visitorName" required autocomplete="off">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small fw-bold">Tipo de Pase</label>
+                  <select class="form-select bg-dark text-white border-secondary" id="isSingleUse">
+                      <option value="1">Un Solo Uso (Se invalida al salir)</option>
+                      <option value="0">Múltiples Entradas (Válido todo el periodo)</option>
+                  </select>
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
-                        <label class="form-label text-muted">Válido Desde</label>
-                        <input type="datetime-local" class="form-control" id="validFrom" required>
+                        <label class="form-label text-muted small fw-bold">Válido Desde</label>
+                        <input type="datetime-local" class="form-control bg-dark text-white border-secondary" id="validFrom" required>
                     </div>
                     <div class="col-6 mb-3">
-                        <label class="form-label text-muted">Válido Hasta</label>
-                        <input type="datetime-local" class="form-control" id="validUntil" required>
+                        <label class="form-label text-muted small fw-bold">Válido Hasta (Opcional)</label>
+                        <input type="datetime-local" class="form-control bg-dark text-white border-secondary" id="validUntil">
                     </div>
                 </div>
               </div>
@@ -88,8 +137,51 @@
       </div>
     </div>
 
+    <!-- Modal Pase Generado (QR) -->
+    <div class="modal fade" id="visitSuccessModal" tabindex="-1" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content text-white text-center">
+          <div class="modal-body py-5">
+            <h4 class="fw-bold text-success mb-3"><i class="fas fa-check-circle me-2"></i>Pase Generado</h4>
+            <p class="text-muted small">Comparte este código QR con tu visitante</p>
+            <div id="newVisitQrContainer" class="bg-white p-3 rounded shadow-sm d-inline-block mb-3">
+                <!-- El QR de la API pública se inserta aquí -->
+            </div>
+            <br>
+            <span class="text-white-50 small mb-1 d-block">Identificador (UUID)</span>
+            <code class="fs-6 text-primary bg-dark px-3 py-2 rounded d-block" style="word-break: break-all;" id="newVisitCodeText"></code>
+          </div>
+          <div class="modal-footer border-0 justify-content-center flex-column gap-2">
+            <button type="button" class="btn btn-primary w-100 rounded-pill shadow fw-bold py-2" id="btnShareModalPass">
+                <i class="fas fa-share-nodes me-2"></i>Compartir Enlace
+            </button>
+            <button type="button" class="btn btn-outline-light w-100 rounded-pill py-2" data-bs-dismiss="modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Confirmar Revocar Visita -->
+    <div class="modal fade" id="confirmRevokeModal" tabindex="-1" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content text-white" style="background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1);">
+          <div class="modal-body p-4 text-center">
+            <i class="fas fa-exclamation-triangle text-warning fs-1 mb-3"></i>
+            <h5 class="fw-bold mb-3">¿Revocar Acceso?</h5>
+            <p class="text-muted small mb-4">El pase será cancelado inmediatamente y el visitante no podrá ingresar por caseta.</p>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-light w-50 rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger w-50 rounded-pill fw-bold" id="btnConfirmRevoke">Revocar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Librería para generar QRs nativos en el navegador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

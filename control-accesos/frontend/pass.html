@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pase de Acceso | Nexus</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .ticket {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            color: #1e293b;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .ticket::before, .ticket::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40px;
+            height: 40px;
+            background-color: var(--bg-dark);
+            border-radius: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+        .ticket::before { left: -20px; }
+        .ticket::after { right: -20px; }
+        .ticket-dashed-line {
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            right: 20px;
+            border-top: 2px dashed #cbd5e1;
+            z-index: 1;
+        }
+        .ticket-header { padding: 30px; padding-bottom: 20px; text-align: center; }
+        .ticket-body { padding: 30px; padding-top: 20px; text-align: center; }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center min-vh-100 p-3">
+
+    <div class="container" style="max-width: 450px;">
+        <div id="loading" class="text-center text-white my-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+            <h4 class="mt-3">Buscando Pase...</h4>
+        </div>
+
+        <div id="ticketContainer" class="d-none">
+            <div class="text-center mb-3">
+                <i class="fas fa-shield-alt text-primary fs-1"></i>
+                <h3 class="text-white mt-2 fw-bold tracking-wide">Nexus Access</h3>
+            </div>
+
+            <div class="ticket" id="ticketCard">
+                <!-- Mitad superior -->
+                <div class="ticket-header bg-primary text-white" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;">
+                    <h5 class="text-uppercase fw-bold mb-1 opacity-75">Pase de Visitante</h5>
+                    <h2 class="fw-bold mb-0" id="visitorName">Cargando...</h2>
+                </div>
+                
+                <div class="ticket-dashed-line"></div>
+
+                <!-- Mitad inferior -->
+                <div class="ticket-body">
+                    <div class="row text-start mb-4">
+                        <div class="col-6 border-end">
+                            <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Anfitrión</small>
+                            <span class="fw-bold fs-6" id="residentName">...</span>
+                        </div>
+                        <div class="col-6 ps-3">
+                            <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Destino</small>
+                            <span class="fw-bold fs-6" id="address">...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-light p-2 rounded mb-4 text-start">
+                        <small class="text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 0.7rem;">Validez</small>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-semibold text-success"><i class="fas fa-calendar-check me-1"></i>Inicio</span>
+                            <span class="small" id="validFrom">...</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold text-danger"><i class="fas fa-calendar-times me-1"></i>Fin</span>
+                            <span class="small" id="validUntil">...</span>
+                        </div>
+                    </div>
+
+                    <div id="qrWrapper" class="p-2 border rounded d-inline-block shadow-sm">
+                        <div id="qrCode"></div>
+                    </div>
+                    
+                    <p class="mt-3 text-muted small fw-bold tracking-widest text-uppercase" id="passStatusText">Muestre este código en caseta</p>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="glass-card p-4 text-center d-none border-danger mt-4">
+                <i class="fas fa-times-circle text-danger fs-1 mb-3"></i>
+                <h4 class="text-danger fw-bold">Pase Inválido</h4>
+                <p class="text-muted" id="errorMessage">El código no existe o fue cancelado.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+
+            if(!token) {
+                showError("No se proporcionó un token válido en la URL.");
+                return;
+            }
+
+            $.ajax({
+                url: `/control-accesos/api/public/visit.php?token=${token}`,
+                type: 'GET',
+                success: function(res) {
+                    $('#loading').addClass('d-none');
+                    $('#ticketContainer').removeClass('d-none');
+
+                    $('#visitorName').text(res.visitor_name);
+                    $('#residentName').text(res.resident_name);
+                    $('#address').text(res.address);
+                    
+                    // Formatear fechas para mejor lectura
+                    $('#validFrom').text(res.valid_from);
+                    $('#validUntil').text(res.valid_until);
+
+                    if(res.status == 1) {
+                        $('#qrCode').html(`<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=4&data=${res.access_token}" alt="QR" width="200" height="200">`);
+                    } else {
+                        $('#qrWrapper').html('<div class="p-4"><i class="fas fa-ban text-danger" style="font-size: 5rem;"></i></div>');
+                        $('#passStatusText').html('<span class="text-danger">ESTE PASE FUE ANULADO</span>');
+                        $('.ticket').css('filter', 'grayscale(1)');
+                    }
+                },
+                error: function() {
+                    showError("El pase no existe, ha expirado o hubo un error de conexión.");
+                }
+            });
+
+            function showError(msg) {
+                $('#loading').addClass('d-none');
+                $('#ticketContainer').removeClass('d-none');
+                $('#ticketCard').addClass('d-none');
+                $('#errorState').removeClass('d-none');
+                $('#errorMessage').text(msg);
+            }
+        });
+    </script>
+</body>
+</html>

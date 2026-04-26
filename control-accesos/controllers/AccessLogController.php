@@ -18,17 +18,18 @@ class AccessLogController {
             return;
         }
 
-        $token = $data->token;
+        $token = trim($data->token);
         $guardId = $data->guard_id;
 
         $accesoPermitido = false;
-        $razon = "Código inválido o inexistente";
+        $razon = "Código inválido o inexistente. <br><small class='text-muted'>Leído: " . htmlspecialchars($token) . "</small>";
         $tipoUsuario = "Desconocido";
+        $accionRealizada = "ENTRADA";
 
         // 1. Verificar si es una visita temporal
-        $queryVisita = "SELECT v.valid_from, v.valid_until, r.address 
+        $queryVisita = "SELECT v.id, v.valid_from, v.valid_until, v.status, v.is_inside, v.is_single_use, r.address 
                         FROM visits v JOIN residents r ON v.resident_id = r.id
-                        WHERE v.access_token = :token AND v.status = 1";
+                        WHERE v.access_token = :token AND (v.status = 1 OR v.is_inside = 1)";
         $stmtV = $this->db->prepare($queryVisita);
         $stmtV->bindParam(":token", $token);
         $stmtV->execute();
@@ -37,12 +38,41 @@ class AccessLogController {
             $visita = $stmtV->fetch(PDO::FETCH_ASSOC);
             $tipoUsuario = "Visita";
             $ahora = date('Y-m-d H:i:s');
+            $visitId = $visita['id'];
             
-            if ($ahora >= $visita['valid_from'] && $ahora <= $visita['valid_until']) {
-                $accesoPermitido = true;
-                $razon = "Visita válida. Dirigirse a: " . $visita['address'];
+            if ($visita['is_inside'] == 0) {
+                // INTENTO DE ENTRADA
+                if ($ahora >= $visita['valid_from'] && $ahora <= $visita['valid_until']) {
+                    $accesoPermitido = true;
+                    $accionRealizada = "ENTRADA";
+                    $razon = "Dirigirse a " . $visita['address'];
+                    
+                    // Marcar como adentro
+                    $updateQ = "UPDATE visits SET is_inside = 1 WHERE id = :id";
+                    $uStmt = $this->db->prepare($updateQ);
+                    $uStmt->bindParam(":id", $visitId);
+                    $uStmt->execute();
+                } else {
+                    $razon = "ENTRADA DENEGADA: Fuera de horario de vigencia.<br><small class='text-muted'>Hora del servidor: $ahora<br>Vigencia del pase: {$visita['valid_from']} a {$visita['valid_until']}</small>";
+                }
             } else {
-                $razon = "Visita fuera de horario de vigencia.";
+                // INTENTO DE SALIDA
+                $accesoPermitido = true;
+                $accionRealizada = "SALIDA";
+                $razon = "¡Buen viaje!";
+                
+                // Marcar como afuera. Si es de un solo uso, invalidarlo (status = 0)
+                $nuevoStatus = $visita['is_single_use'] == 1 ? 0 : 1; 
+                
+                if ($nuevoStatus == 0) {
+                    $razon .= "<br><strong class='text-danger'>Este fue un pase de UN SOLO USO. Ya no podrá volver a acceder.</strong>";
+                }
+                
+                $updateQ = "UPDATE visits SET is_inside = 0, status = :st WHERE id = :id";
+                $uStmt = $this->db->prepare($updateQ);
+                $uStmt->bindParam(":id", $visitId);
+                $uStmt->bindParam(":st", $nuevoStatus);
+                $uStmt->execute();
             }
         } else {
             // 2. Si no es visita, verificar si es Residente y validar su pago dinámicamente
@@ -78,10 +108,10 @@ class AccessLogController {
         // 4. Devolver la respuesta
         if ($accesoPermitido) {
             http_response_code(200);
-            echo json_encode(["status" => "ACCESO PERMITIDO", "reason" => $razon, "type" => $tipoUsuario]);
+            echo json_encode(["status" => "ACCESO PERMITIDO", "reason" => $razon, "type" => $tipoUsuario, "action" => $accionRealizada]);
         } else {
             http_response_code(403);
-            echo json_encode(["status" => "ACCESO DENEGADO", "reason" => $razon, "type" => $tipoUsuario]);
+            echo json_encode(["status" => "ACCESO DENEGADO", "reason" => $razon, "type" => $tipoUsuario, "action" => $accionRealizada]);
         }
     }
 }
