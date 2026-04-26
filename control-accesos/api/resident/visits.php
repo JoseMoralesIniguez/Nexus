@@ -12,7 +12,10 @@ $db = $database->getConnection();
 $controller = new VisitController($db);
 $residentId = isset($_GET['resident_id']) ? $_GET['resident_id'] : null;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $filter = isset($_GET['filter']) ? $_GET['filter'] : 'active';
+    $controller->getVisits($residentId, $filter);
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents("php://input"));
     $controller->create($data, $residentId);
 } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {

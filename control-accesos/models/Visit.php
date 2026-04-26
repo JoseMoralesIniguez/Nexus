@@ -11,6 +11,8 @@ class Visit {
     public $valid_until;
     public $access_token;
     public $status;
+    public $is_single_use;
+    public $is_inside;
     public $created_at;
     public $updated_at;
 
@@ -21,13 +23,14 @@ class Visit {
     // Crear visita
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " 
-                  SET resident_id=:resident_id, visitor_name=:visitor_name, 
+                  SET resident_id=:resident_id, visitor_name=:visitor_name, is_single_use=:is_single_use,
                       valid_from=:valid_from, valid_until=:valid_until, access_token=:access_token";
 
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(":resident_id", $this->resident_id);
         $stmt->bindParam(":visitor_name", $this->visitor_name);
+        $stmt->bindParam(":is_single_use", $this->is_single_use);
         $stmt->bindParam(":valid_from", $this->valid_from);
         $stmt->bindParam(":valid_until", $this->valid_until);
         $stmt->bindParam(":access_token", $this->access_token);
